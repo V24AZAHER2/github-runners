@@ -34,6 +34,13 @@ ENV PYTHONUNBUFFERED=1 \
 ARG FLUTTER_VERSION=3.19.5
 ARG FLUTTER_CHANNEL=stable
 
+# Install Java (required for Android SDK and Flutter)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openjdk-17-jdk \
+    openjdk-17-jre \
+    && rm -rf /var/lib/apt/lists/* \
+    && java -version
+
 # Install Flutter SDK (required for Flet to build Flutter apps)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
@@ -56,7 +63,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libzstd1 \
     libncurses5 \
     libncursesw5 \
-    libreadline7 \
+    libreadline8 \
     libsqlite3-0 \
     libssl3 \
     wget \
@@ -86,6 +93,7 @@ RUN mkdir -p /opt/android-sdk/cmdline-tools && \
 
 # Set up Android SDK environment
 ENV ANDROID_SDK_ROOT=/opt/android-sdk
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
 
 # Install Android SDK components
@@ -121,17 +129,21 @@ ENV PUB_CACHE=/opt/flutter/.pub-cache
 # Flet SDK for building cross-platform apps
 RUN pip install --no-cache-dir flet==0.22.0
 
-# Pre-install common Flutter packages needed by Flet
-RUN flutter pub global activate dart_style && \
-    flutter pub global activate linter
-
 # Create directories and set permissions
 RUN mkdir -p /opt/flutter/.pub-cache && \
     chown -R runner:runner /opt/flutter && \
     chown -R runner:runner /opt/android-sdk && \
     chown -R runner:runner /opt/flutter/.pub-cache
 
+# Pre-install common Flutter packages needed by Flet
+# Run as runner user to avoid Flutter's warning about running as root
+USER runner
+RUN flutter pub global activate dart_style && \
+    flutter pub global activate linter
+USER root
+
 # Verify installations
+USER runner
 RUN python3 --version && \
     pip3 --version && \
     flutter --version && \
@@ -139,6 +151,7 @@ RUN python3 --version && \
     node --version && \
     google-chrome --version && \
     python3 -c "import flet; print(f'Flet version: {flet.__version__}')"
+USER root
 
 # Labels
 LABEL org.opencontainers.image.description="Flet (Python to Flutter) language pack for GitHub Actions runners" \
