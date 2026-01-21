@@ -134,37 +134,79 @@ Based on your needs, select one of the following:
 | **Web Stack** | 580MB | ~3.5 min | Node.js + Go web development |
 | **Full Stack** | 2.5GB | ~8 min | Legacy support, all languages |
 
-### Step 4: Build and Deploy
+### Step 4: Build Docker Images (Required First!)
+
+**⚠️ IMPORTANT**: The project uses a **modular architecture** where images must be built in a specific order before running docker-compose. **You cannot use docker-compose until the required images are built.**
+
+#### Build Order (In Order - Do Not Skip!)
+
+```bash
+# 1. Build base image (REQUIRED FIRST - ~300MB)
+docker build -f docker/linux/base/Dockerfile.base -t gh-runner:linux-base .
+
+# 2. Build language pack(s) (~150-250MB each)
+# For C++:
+docker build -f docker/linux/language-packs/cpp/Dockerfile.cpp -t gh-runner:cpp-pack .
+
+# For Python:
+docker build -f docker/linux/language-packs/python/Dockerfile.python -t gh-runner:python-pack .
+
+# For Web (Node.js + Go):
+docker build -f docker/linux/language-packs/nodejs/Dockerfile.nodejs -t gh-runner:nodejs-pack .
+docker build -f docker/linux/language-packs/go/Dockerfile.go -t gh-runner:go-pack .
+
+# 3. Build composite image (~450-800MB total)
+# For C++:
+docker build -f docker/linux/composite/Dockerfile.cpp-only -t gh-runner:cpp-only .
+
+# For Python:
+docker build -f docker/linux/composite/Dockerfile.python-only -t gh-runner:python-only .
+
+# For Web:
+docker build -f docker/linux/composite/Dockerfile.web -t gh-runner:web-stack .
+```
+
+**Why this order?**
+- **Base image**: Ubuntu + core tools (Git, curl, runner agent)
+- **Language packs**: Language-specific tools (separate layers for caching)
+- **Composite**: Base + selected language packs
+
+**Time required**: ~10-20 minutes total (depends on network and Docker cache)
+
+**Verify images were built**:
+```bash
+docker images | grep gh-runner
+# Expected output:
+# gh-runner:linux-base
+# gh-runner:cpp-pack          (for C++)
+# gh-runner:python-pack       (for Python)
+# gh-runner:cpp-only          (for C++)
+# gh-runner:python-only       (for Python)
+# gh-runner:web-stack         (for Web)
+```
+
+#### After Images Are Built:
 
 **Option A: Using Docker Compose (Recommended)**
 
 ```bash
-# Build and start C++ runner
+# C++ runner
 docker-compose --env-file .env -f docker-compose/linux-cpp.yml up -d
 
-# Build and start Python runner
+# Python runner
 docker-compose --env-file .env -f docker-compose/linux-python.yml up -d
 
-# Build and start Web runner
+# Web runner
 docker-compose --env-file .env -f docker-compose/linux-web.yml up -d
 ```
 
-**Option B: Manual Build**
+**Option B: Manual Deployment**
 
 ```bash
-# Build base image first
-docker build -f docker/linux/base/Dockerfile.base -t gh-runner:linux-base .
-
-# Build language pack(s)
-docker build -f docker/linux/language-packs/cpp/Dockerfile.cpp -t gh-runner:cpp-pack .
-
-# Build composite image
-docker build -f docker/linux/composite/Dockerfile.cpp-only -t gh-runner:cpp-only .
-
-# Run the container
+# Run container directly (after building images)
 docker run -d \
     -e GITHUB_TOKEN=${GITHUB_TOKEN} \
-    -e GITHUB_REPOSITORY=${GITHUB_REPOSITORY} \
+    -e GITHUB_OWNER=${GITHUB_OWNER} \
     -e RUNNER_NAME=cpp-runner \
     gh-runner:cpp-only
 ```

@@ -101,7 +101,94 @@ RUNNER_LABELS=linux,python,ml
 
 **See the "Environment Variables" section below for detailed explanations of all variables.**
 
-### Step 3: Choose Your Runner
+### Step 3: Build Required Docker Images
+
+**Important:** The project uses a modular architecture where images must be built in a specific order. You cannot use docker-compose until the required base images are built.
+
+#### Build Order (Required)
+
+The images must be built in this exact order:
+
+**For Python/ML:**
+```bash
+# 1. Build base image
+docker build -f docker/linux/base/Dockerfile.base -t gh-runner:linux-base .
+
+# 2. Build Python language pack
+docker build -f docker/linux/language-packs/python/Dockerfile.python -t gh-runner:python-pack .
+
+# 3. Build Python-only composite image
+docker build -f docker/linux/composite/Dockerfile.python-only -t gh-runner:python-only .
+```
+
+**For C++:**
+```bash
+# 1. Build base image
+docker build -f docker/linux/base/Dockerfile.base -t gh-runner:linux-base .
+
+# 2. Build C++ language pack
+docker build -f docker/linux/language-packs/cpp/Dockerfile.cpp -t gh-runner:cpp-pack .
+
+# 3. Build C++ only composite image
+docker build -f docker/linux/composite/Dockerfile.cpp-only -t gh-runner:cpp-only .
+```
+
+**For Web (Node.js + Go):**
+```bash
+# 1. Build base image
+docker build -f docker/linux/base/Dockerfile.base -t gh-runner:linux-base .
+
+# 2. Build Node.js language pack
+docker build -f docker/linux/language-packs/nodejs/Dockerfile.nodejs -t gh-runner:nodejs-pack .
+
+# 3. Build Go language pack
+docker build -f docker/linux/language-packs/go/Dockerfile.go -t gh-runner:go-pack .
+
+# 4. Build web stack composite image
+docker build -f docker/linux/composite/Dockerfile.web -t gh-runner:web-stack .
+```
+
+**For Full Stack (all languages):**
+```bash
+# Build base and all language packs first
+docker build -f docker/linux/base/Dockerfile.base -t gh-runner:linux-base .
+docker build -f docker/linux/language-packs/python/Dockerfile.python -t gh-runner:python-pack .
+docker build -f docker/linux/language-packs/cpp/Dockerfile.cpp -t gh-runner:cpp-pack .
+docker build -f docker/linux/language-packs/nodejs/Dockerfile.nodejs -t gh-runner:nodejs-pack .
+docker build -f docker/linux/language-packs/go/Dockerfile.go -t gh-runner:go-pack .
+docker build -f docker/linux/language-packs/flutter/Dockerfile.flutter -t gh-runner:flutter-pack .
+docker build -f docker/linux/language-packs/flet/Dockerfile.flet -t gh-runner:flet-pack .
+
+# Then build full stack composite
+docker build -f docker/linux/composite/Dockerfile.full-stack -t gh-runner:full-stack .
+```
+
+#### Why This Order?
+
+The project uses a **layered architecture** for efficiency:
+1. **Base image** (~300MB): Ubuntu + core tools (Git, curl, runner agent)
+2. **Language packs** (~150-500MB each): Language-specific tools (Python, C++, Node.js, etc.)
+3. **Composite images** (~450-800MB): Base + selected language packs
+
+**Benefits:**
+- ✅ **Faster builds**: Only rebuild changed layers
+- ✅ **Smaller images**: No duplicate packages
+- ✅ **Better caching**: Language packs can be reused
+- ✅ **Flexible**: Mix and match language packs
+
+#### Verify Images
+```bash
+docker images | grep gh-runner
+```
+
+Expected output:
+```
+gh-runner:linux-base
+gh-runner:python-pack
+gh-runner:python-only
+```
+
+### Step 4: Run Docker Compose
 
 Based on your project needs:
 
@@ -115,7 +202,7 @@ Based on your project needs:
 | **Multiple Langs** | `docker-compose --env-file .env -f docker-compose/linux-full.yml up -d` | 2.5GB | ~8 min |
 | **Minimal** | `docker-compose --env-file .env -f docker-compose/linux-base.yml up -d` | 300MB | ~2 min |
 
-### Step 4: Verify in GitHub
+### Step 5: Verify in GitHub
 
 1. Go to **Settings → Actions → Runners**
 2. Your runner should appear as **Online**

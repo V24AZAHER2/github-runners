@@ -73,25 +73,18 @@ Based on your project needs, pick one:
 | **Multiple Languages** | `linux-full.yml` | `docker-compose --env-file .env -f docker-compose/linux-full.yml up -d` |
 | **Just Basics** | `linux-base.yml` | `docker-compose --env-file .env -f docker-compose/linux-base.yml up -d` |
 
-### Step 4: Build and Deploy
+### Step 4: Build Docker Images (Required First!)
 
-**Using Docker Compose (Recommended)**:
+**⚠️ IMPORTANT**: You MUST build the required Docker images before running docker-compose. The project uses a **modular architecture** where images are built in layers:
 
-```bash
-# Build and start the runner (from root directory)
-docker-compose --env-file .env -f docker-compose/linux-cpp.yml up -d
+1. **Base image** (~300MB): Ubuntu + core tools
+2. **Language packs** (~150-250MB each): Language-specific tools
+3. **Composite images** (~450-800MB): Base + selected packs
 
-# Or if you prefer, navigate to docker-compose directory first:
-cd docker-compose
-cp ../.env .
-# Edit .env then:
-docker-compose -f linux-cpp.yml up -d
-```
-
-**Manual Build** (if you prefer):
+#### Required Build Commands (In Order):
 
 ```bash
-# 1. Build base image
+# 1. Build base image (REQUIRED FIRST)
 docker build -f docker/linux/base/Dockerfile.base -t gh-runner:linux-base .
 
 # 2. Build language pack(s)
@@ -99,11 +92,35 @@ docker build -f docker/linux/language-packs/cpp/Dockerfile.cpp -t gh-runner:cpp-
 
 # 3. Build composite image
 docker build -f docker/linux/composite/Dockerfile.cpp-only -t gh-runner:cpp-only .
+```
 
-# 4. Run the container
+**Build time**: ~5-10 minutes total
+
+**Verify**: `docker images | grep gh-runner`
+
+#### After Images Are Built:
+
+**Using Docker Compose (Recommended)**:
+
+```bash
+# Run from root directory
+docker-compose --env-file .env -f docker-compose/linux-cpp.yml up -d
+
+# Or navigate to docker-compose directory:
+cd docker-compose
+cp ../.env .
+docker-compose -f linux-cpp.yml up -d
+```
+
+**Manual Deployment** (if you prefer):
+
+```bash
+# After building images (see Step 4 above)
+
+# Run container directly
 docker run -d \
     -e GITHUB_TOKEN=${GITHUB_TOKEN} \
-    -e GITHUB_REPOSITORY=${GITHUB_REPOSITORY} \
+    -e GITHUB_OWNER=${GITHUB_OWNER} \
     -e RUNNER_NAME=${RUNNER_NAME} \
     --name cpp-runner \
     gh-runner:cpp-only
