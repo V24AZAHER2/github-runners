@@ -163,9 +163,9 @@ services:
     # User configuration
     user: "1001:1001"
 
-    # Depends on
-    depends_on:
-      - # Add any dependencies if needed
+    # Depends on (optional - add service names here if needed)
+    # depends_on:
+    #   - other-service
 
 # Profile for selective deployment
 # profiles:

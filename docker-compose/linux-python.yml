@@ -132,9 +132,9 @@ services:
     # Read only root filesystem (optional, for security)
     # read_only: true
 
-    # Depends on
-    depends_on:
-      - # Add any dependencies if needed
+    # Depends on (optional - add service names here if needed)
+    # depends_on:
+    #   - other-service
 
 # Profile for selective deployment
 # profiles:

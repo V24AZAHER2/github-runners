@@ -128,9 +128,9 @@ services:
     # entrypoint: ["/entrypoint.sh"]
     # command: ["--help"]
 
-    # Depends on
-    depends_on:
-      - # Add any dependencies if needed
+    # Depends on (optional - add service names here if needed)
+    # depends_on:
+    #   - other-service
 
     # External links
     # external_links:
