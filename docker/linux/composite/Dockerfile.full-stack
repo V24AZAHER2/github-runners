@@ -33,16 +33,8 @@ COPY --from=gh-runner:cpp-pack /usr/local/include/ /usr/local/include/
 COPY --from=gh-runner:cpp-pack /usr/share/ /usr/share/
 
 # Copy Node.js toolchain (all npm packages install to /usr/bin/ when npm prefix is /usr)
-COPY --from=gh-runner:nodejs-pack /usr/bin/node /usr/bin/node
-COPY --from=gh-runner:nodejs-pack /usr/bin/nodejs /usr/bin/nodejs
-COPY --from=gh-runner:nodejs-pack /usr/bin/npm /usr/bin/npm
-COPY --from=gh-runner:nodejs-pack /usr/bin/npx /usr/bin/npx
-COPY --from=gh-runner:nodejs-pack /usr/bin/yarn /usr/bin/yarn
-COPY --from=gh-runner:nodejs-pack /usr/bin/yarnpkg /usr/bin/yarnpkg
-COPY --from=gh-runner:nodejs-pack /usr/bin/pnpm /usr/bin/pnpm
-COPY --from=gh-runner:nodejs-pack /usr/bin/pnpx /usr/bin/pnpx
-COPY --from=gh-runner:nodejs-pack /usr/bin/corepack /usr/bin/corepack
-COPY --from=gh-runner:nodejs-pack /usr/lib/node_modules /usr/lib/node_modules
+COPY --from=gh-runner:nodejs-pack /usr/bin/ /usr/bin/
+COPY --from=gh-runner:nodejs-pack /usr/lib/node_modules/ /usr/lib/node_modules/
 
 # Copy Go toolchain
 COPY --from=gh-runner:go-pack /usr/local/go /usr/local/go
