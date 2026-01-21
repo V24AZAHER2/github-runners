@@ -459,6 +459,39 @@ docker buildx build \
 - ✅ Composite images (6 combinations: cpp-only, python-only, web-stack, flutter-only, flet-only, full-stack)
 - ✅ Docker Compose configurations
 - ✅ Comprehensive documentation
+- ✅ Docker image builder system (build, tag, push to registry)
+
+### Docker Image Builder
+The `docker/builder/` directory contains a complete system for building, tagging, and pushing Docker images to any container registry (GitHub Container Registry, Docker Hub, private registries, etc.).
+
+**Features:**
+- ✅ Build images with Docker-in-Docker or buildx
+- ✅ Automatic version tagging
+- ✅ Multi-platform support (amd64, arm64)
+- ✅ Registry caching for faster builds
+- ✅ Support for GitHub CR, Docker Hub, private registries
+- ✅ Makefile for easy builds
+
+**Quick Start:**
+```bash
+# Build and push to GitHub Container Registry
+cd docker/builder
+export REGISTRY=ghcr.io
+export ORG=cicd
+export REGISTRY_USERNAME=<username>
+export REGISTRY_PASSWORD=<token>
+
+# Build single image
+./scripts/build.sh cpp --push
+
+# Build all images
+./scripts/build.sh all --push --cache-from
+
+# Or use Makefile
+make all REGISTRY=ghcr.io ORG=cicd PUSH=true
+```
+
+**Documentation:** See `docker/builder/README.md` for complete details.
 
 ### Docker Images
 | Image | Size | Use Case |
