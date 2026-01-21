@@ -115,15 +115,20 @@ RUN mkdir -p /opt/flutter/.pub-cache && \
     chown -R runner:runner /opt/flutter/.pub-cache
 
 # Pre-install common Flutter packages
+# Run as runner user to avoid Flutter's warning about running as root
+USER runner
 RUN flutter pub global activate dart_style && \
     flutter pub global activate linter && \
     flutter pub global activate flutter_lints
+USER root
 
 # Verify installations
+USER runner
 RUN flutter --version && \
     dart --version && \
     node --version && \
     google-chrome --version
+USER root
 
 # Labels
 LABEL org.opencontainers.image.description="Flutter/Dart language pack for GitHub Actions runners" \
