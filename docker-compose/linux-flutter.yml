@@ -1,0 +1,139 @@
+# docker-compose/linux-flutter.yml
+# Flutter development GitHub Actions runner configuration
+# Designed for Flutter/Dart mobile development (Android/iOS)
+
+version: '3.8'
+
+networks:
+  github-runners:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+services:
+  flutter-runner:
+    # Build the Flutter only composite image
+    build:
+      context: ../
+      dockerfile: docker/linux/composite/Dockerfile.flutter-only
+      target: gh-runner:flutter-only
+      # Optional: Build arguments
+      args:
+        RUNNER_VERSION: 2.32.0
+        FLUTTER_VERSION: 3.19.5
+        FLUTTER_CHANNEL: stable
+        ANDROID_SDK_VERSION: 34
+        ANDROID_BUILD_TOOLS_VERSION: 34.0.0
+    image: gh-runner:flutter-only
+    container_name: github-flutter-runner
+    hostname: flutter-runner
+
+    # Resource limits for Flutter builds (can be memory intensive)
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 8G
+        reservations:
+          cpus: '2.0'
+          memory: 4G
+
+    # Memory and CPU limits
+    mem_limit: 8g
+    mem_reservation: 4g
+    cpus: '4.0'
+    cpu_shares: 1024
+
+    # Environment variables (REQUIRED)
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN:?ERROR: GITHUB_TOKEN environment variable is required}
+      - GITHUB_REPOSITORY=${GITHUB_REPOSITORY:?ERROR: GITHUB_REPOSITORY environment variable is required}
+      - RUNNER_NAME=${RUNNER_NAME:-flutter-runner-01}
+      - RUNNER_LABELS=${RUNNER_LABELS:-linux,flutter,dart,mobile,android,ios}
+      - RUNNER_GROUP=${RUNNER_GROUP:-Default}
+      - RUNNER_WORKDIR=${RUNNER_WORKDIR:-_work}
+      - RUNNER_AS_ROOT=${RUNNER_AS_ROOT:-false}
+      - RUNNER_REPLACE_EXISTING=${RUNNER_REPLACE_EXISTING:-false}
+
+    # Optional environment variables for Flutter specific configuration
+      - FLUTTER_HOME=/opt/flutter
+      - ANDROID_SDK_ROOT=/opt/android-sdk
+      - ANDROID_LICENSE_AGREEMENT=yes
+      - PUB_CACHE=/opt/flutter/.pub-cache
+
+    # Volumes
+    volumes:
+      # Docker socket for container builds (read-only for security)
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+      # Persistent runner data
+      - ./data/flutter-runner:/actions-runner
+
+      # Flutter pub cache (shared between builds)
+      - ./data/flutter-pub-cache:/opt/flutter/.pub-cache
+
+      # Flutter SDK cache (for faster builds)
+      - ./data/flutter-cache:/opt/flutter/bin/cache
+
+      # Android SDK data (cache downloads)
+      - ./data/android-sdk:/opt/android-sdk
+
+      # Optional: Source code mounting for local development
+      # - /path/to/your/flutter/project:/workspace:ro
+
+    # Network configuration
+    networks:
+      - github-runners
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service"
+        env: "os,customer"
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "flutter", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Labels for monitoring
+    labels:
+      - "service=github-runner"
+      - "language=flutter"
+      - "language=dart"
+      - "role=build"
+      - "environment=production"
+
+    # User configuration
+    user: "1001:1001"
+
+    # Depends on
+    depends_on:
+      - # Add any dependencies if needed
+
+# Profile for selective deployment
+# profiles:
+#   - flutter
+#   - dart
+#   - mobile
+#   - github

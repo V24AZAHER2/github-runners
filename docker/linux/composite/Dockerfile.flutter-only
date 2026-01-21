@@ -1,0 +1,49 @@
+# docker/linux/composite/Dockerfile.flutter-only
+# Flutter only runner - for Flutter/Dart mobile development
+# Size: ~2.3GB (Base 300MB + Flutter pack 2.0GB)
+
+FROM gh-runner:linux-base
+
+# Copy Flutter/Dart toolchain from the Flutter pack
+COPY --from=gh-runner:flutter-pack /opt/flutter /opt/flutter
+COPY --from=gh-runner:flutter-pack /opt/android-sdk /opt/android-sdk
+
+# Copy system libraries
+COPY --from=gh-runner:flutter-pack /usr/lib/x86_64-linux-gnu/ /usr/lib/x86_64-linux-gnu/
+COPY --from=gh-runner:flutter-pack /usr/share/fonts/ /usr/share/fonts/
+
+# Create symlinks for Flutter and Dart
+RUN ln -sf /opt/flutter/bin/flutter /usr/local/bin/flutter && \
+    ln -sf /opt/flutter/bin/dart /usr/local/bin/dart
+
+# Set environment variables
+ENV FLUTTER_HOME=/opt/flutter
+ENV ANDROID_SDK_ROOT=/opt/android-sdk
+ENV PATH=$PATH:$FLUTTER_HOME/bin:$FLUTTER_HOME/bin/cache/dart-sdk/bin:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
+ENV PUB_CACHE=/opt/flutter/.pub-cache
+ENV ANDROID_LICENSE_AGREEMENT=yes
+
+# Set up Chrome for web testing (if needed)
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub 2>/dev/null | apt-key add - 2>/dev/null && \
+    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
+    apt-get update && apt-get install -y --no-install-recommends google-chrome-stable && \
+    rm -rf /var/lib/apt/lists/*
+
+# Verify installations
+RUN flutter --version && \
+    dart --version && \
+    google-chrome --version
+
+# Environment variables for Flutter development
+ENV BUILD_STACK=flutter \
+    FLUTTER_ENV=enabled \
+    PUB_CACHE=/opt/flutter/.pub-cache
+
+# Labels
+LABEL org.opencontainers.image.description="Flutter only GitHub Actions runner" \
+      org.opencontainers.image.version="1.0.0" \
+      org.opencontainers.image.tags="flutter,dart,mobile,android,ios" \
+      org.opencontainers.image.size="~2.3GB"
+
+USER runner
+WORKDIR /actions-runner

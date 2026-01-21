@@ -66,6 +66,18 @@ services:
       - go
       - language
 
+  flutter-pack:
+    build:
+      context: ../
+      dockerfile: docker/linux/language-packs/flutter/Dockerfile.flutter
+    image: gh-runner:flutter-pack
+    depends_on:
+      - base
+    profiles:
+      - build
+      - flutter
+      - language
+
   # Composite images
   cpp-only:
     build:
@@ -104,6 +116,18 @@ services:
       - web
       - composite
 
+  flutter-only:
+    build:
+      context: ../
+      dockerfile: docker/linux/composite/Dockerfile.flutter-only
+    image: gh-runner:flutter-only
+    depends_on:
+      - flutter-pack
+    profiles:
+      - build
+      - flutter
+      - composite
+
   full-stack:
     build:
       context: ../
@@ -114,6 +138,7 @@ services:
       - python-pack
       - nodejs-pack
       - go-pack
+      - flutter-pack
     profiles:
       - build
       - full

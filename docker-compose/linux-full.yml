@@ -48,7 +48,7 @@ services:
       - GITHUB_TOKEN=${GITHUB_TOKEN:?ERROR: GITHUB_TOKEN environment variable is required}
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY:?ERROR: GITHUB_REPOSITORY environment variable is required}
       - RUNNER_NAME=${RUNNER_NAME:-full-runner-01}
-      - RUNNER_LABELS=${RUNNER_LABELS:-linux,full,all,legacy,python,cpp,nodejs,go}
+      - RUNNER_LABELS=${RUNNER_LABELS:-linux,full,all,legacy,python,cpp,nodejs,go,flutter,dart}
       - RUNNER_GROUP=${RUNNER_GROUP:-Default}
       - RUNNER_WORKDIR=${RUNNER_WORKDIR:-_work}
       - RUNNER_AS_ROOT=${RUNNER_AS_ROOT:-false}
@@ -68,6 +68,10 @@ services:
       - GOROOT=${GOROOT:-/usr/local/go}
       - GO111MODULE=${GO111MODULE:-on}
       - GOBIN=${GOBIN:-/go/bin}
+      - FLUTTER_HOME=${FLUTTER_HOME:-/opt/flutter}
+      - ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-/opt/android-sdk}
+      - ANDROID_LICENSE_AGREEMENT=${ANDROID_LICENSE_AGREEMENT:-yes}
+      - PUB_CACHE=${PUB_CACHE:-/opt/flutter/.pub-cache}
       - CC=${CC:-/usr/bin/gcc}
       - CXX=${CXX:-/usr/bin/g++}
       - BUILD_TYPE=${BUILD_TYPE:-Release}
@@ -100,6 +104,11 @@ services:
       # Go caches
       - ./data/full-go-pkg-cache:/go/pkg/mod
       - ./data/full-go-bin-cache:/go/bin
+
+      # Flutter caches
+      - ./data/full-flutter-pub-cache:/opt/flutter/.pub-cache
+      - ./data/full-flutter-cache:/opt/flutter/bin/cache
+      - ./data/full-android-sdk:/opt/android-sdk
 
       # Optional: Shared ML models cache
       - ./data/full-ml-cache:/home/runner/.cache/ml

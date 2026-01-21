@@ -1,0 +1,125 @@
+# docker/linux/language-packs/flutter/Dockerfile.flutter
+# Flutter/Dart language pack for GitHub Actions runners
+# Size: ~2.0GB (adds to base ~300MB = ~2.3GB total)
+
+FROM gh-runner:linux-base AS flutter-pack
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install prerequisites for Flutter
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    unzip \
+    git \
+    xz-utils \
+    libglu1-mesa \
+    libxi6 \
+    libxrender1 \
+    libxxf86vm1 \
+    libxrandr2 \
+    libxcursor1 \
+    libxinerama1 \
+    libxext6 \
+    libgtk-3-0 \
+    libblkid1 \
+    liblz4-1 \
+    liblzma5 \
+    liblzma-dev \
+    libzstd1 \
+    libncurses5 \
+    libncursesw5 \
+    libreadline7 \
+    libsqlite3-0 \
+    libssl3 \
+    wget \
+    gnupg \
+    lsb-release \
+    software-properties-common \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Flutter SDK
+ARG FLUTTER_VERSION=3.19.5
+ARG FLUTTER_CHANNEL=stable
+
+RUN mkdir -p /opt/flutter && \
+    cd /opt/flutter && \
+    git clone https://github.com/flutter/flutter.git --branch ${FLUTTER_CHANNEL} --depth 1 . && \
+    bin/flutter --version && \
+    bin/flutter config --no-analytics && \
+    bin/flutter precache
+
+# Install Dart SDK (included with Flutter)
+# Flutter already includes Dart SDK
+
+# Install Android SDK and tools (for Android builds)
+ARG ANDROID_SDK_VERSION=34
+ARG ANDROID_BUILD_TOOLS_VERSION=34.0.0
+
+RUN mkdir -p /opt/android-sdk/cmdline-tools && \
+    cd /opt/android-sdk/cmdline-tools && \
+    wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip && \
+    unzip -q cmdline-tools.zip && \
+    mv cmdline-tools latest && \
+    rm cmdline-tools.zip
+
+# Set up Android SDK environment
+ENV ANDROID_SDK_ROOT=/opt/android-sdk
+ENV PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
+
+# Install Android SDK components
+RUN yes | sdkmanager --licenses && \
+    sdkmanager "platforms;android-${ANDROID_SDK_VERSION}" && \
+    sdkmanager "build-tools;${ANDROID_BUILD_TOOLS_VERSION}" && \
+    sdkmanager "platform-tools"
+
+# Accept Android licenses (required for Flutter)
+ENV ANDROID_LICENSE_AGREEMENT=yes
+
+# Create symlinks for Flutter and Dart
+RUN ln -sf /opt/flutter/bin/flutter /usr/local/bin/flutter && \
+    ln -sf /opt/flutter/bin/dart /usr/local/bin/dart
+
+# Install web dependencies (for Flutter Web)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Chrome for Flutter Web testing
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list && \
+    apt-get update && apt-get install -y --no-install-recommends google-chrome-stable && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set up Flutter environment variables
+ENV FLUTTER_HOME=/opt/flutter
+ENV PATH=$PATH:$FLUTTER_HOME/bin
+ENV PATH=$PATH:$FLUTTER_HOME/bin/cache/dart-sdk/bin
+ENV PUB_CACHE=/opt/flutter/.pub-cache
+
+# Create directories and set permissions
+RUN mkdir -p /opt/flutter/.pub-cache && \
+    chown -R runner:runner /opt/flutter && \
+    chown -R runner:runner /opt/android-sdk && \
+    chown -R runner:runner /opt/flutter/.pub-cache
+
+# Pre-install common Flutter packages
+RUN flutter pub global activate dart_style && \
+    flutter pub global activate linter && \
+    flutter pub global activate flutter_lints
+
+# Verify installations
+RUN flutter --version && \
+    dart --version && \
+    node --version && \
+    google-chrome --version
+
+# Labels
+LABEL org.opencontainers.image.description="Flutter/Dart language pack for GitHub Actions runners" \
+      org.opencontainers.image.version="1.0.0" \
+      org.opencontainers.image.flutter.version="3.19.5" \
+      org.opencontainers.image.dart.version="3.3.0" \
+      org.opencontainers.image.size="~2.0GB"
+
+USER runner
+WORKDIR /actions-runner

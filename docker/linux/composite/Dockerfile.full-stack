@@ -40,10 +40,17 @@ COPY --from=gh-runner:nodejs-pack /usr/local/lib/node_modules /usr/local/lib/nod
 COPY --from=gh-runner:go-pack /usr/local/go /usr/local/go
 COPY --from=gh-runner:go-pack /go /go
 
+# Copy Flutter/Dart toolchain
+COPY --from=gh-runner:flutter-pack /opt/flutter /opt/flutter
+COPY --from=gh-runner:flutter-pack /opt/android-sdk /opt/android-sdk
+COPY --from=gh-runner:flutter-pack /usr/lib/x86_64-linux-gnu/ /usr/lib/x86_64-linux-gnu/
+
 # Create symlinks
 RUN ln -sf /usr/bin/python3 /usr/bin/python && \
     ln -sf /usr/local/go/bin/go /usr/bin/go && \
-    ln -sf /usr/local/go/bin/gofmt /usr/bin/gofmt
+    ln -sf /usr/local/go/bin/gofmt /usr/bin/gofmt && \
+    ln -sf /opt/flutter/bin/flutter /usr/bin/flutter && \
+    ln -sf /opt/flutter/bin/dart /usr/bin/dart
 
 # Install additional common tools (for full compatibility)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -66,7 +73,9 @@ RUN python3 --version && \
     node --version && \
     npm --version && \
     yarn --version && \
-    go version
+    go version && \
+    flutter --version && \
+    dart --version
 
 # Environment variables for all stacks
 ENV BUILD_STACK=full \
@@ -80,12 +89,16 @@ ENV BUILD_STACK=full \
     CXX=/usr/bin/g++ \
     CMAKE_C_COMPILER=gcc \
     CMAKE_CXX_COMPILER=g++ \
-    PATH="/usr/local/go/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:/home/runner/.local/bin:${PATH}"
+    FLUTTER_HOME=/opt/flutter \
+    ANDROID_SDK_ROOT=/opt/android-sdk \
+    ANDROID_LICENSE_AGREEMENT=yes \
+    PUB_CACHE=/opt/flutter/.pub-cache \
+    PATH="/usr/local/go/bin:/opt/flutter/bin:/opt/flutter/bin/cache/dart-sdk/bin:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:/home/runner/.local/bin:${PATH}"
 
 # Labels
-LABEL org.opencontainers.image.description="Full stack GitHub Actions runner (Python + C++ + Node.js + Go)" \
+LABEL org.opencontainers.image.description="Full stack GitHub Actions runner (Python + C++ + Node.js + Go + Flutter)" \
       org.opencontainers.image.version="1.0.0" \
-      org.opencontainers.image.tags="full,full-stack,monolith,legacy,python,cpp,nodejs,go" \
+      org.opencontainers.image.tags="full,full-stack,monolith,legacy,python,cpp,nodejs,go,flutter,dart" \
       org.opencontainers.image.size="~2.5GB"
 
 USER runner
