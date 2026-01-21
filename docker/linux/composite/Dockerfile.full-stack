@@ -69,7 +69,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Verify all installations
-RUN python3 --version && \
+# Configure git safe directory for Flutter (to avoid ownership errors)
+RUN git config --global --add safe.directory /opt/flutter && \
+    python3 --version && \
     pip3 --version && \
     gcc --version && \
     g++ --version && \
