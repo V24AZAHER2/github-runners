@@ -64,6 +64,7 @@ Image Types:
   go                Build Go language pack
   flutter           Build Flutter language pack
   flet              Build Flet language pack
+  android-sdk       Build Android SDK language pack
   cpp-only          Build C++ composite runner
   python-only       Build Python composite runner
   web               Build Web composite runner
@@ -171,6 +172,9 @@ build_standard() {
             ;;
         flet)
             dockerfile="docker/linux/language-packs/flet/Dockerfile.flet"
+            ;;
+        android-sdk)
+            dockerfile="docker/linux/language-packs/android-sdk/Dockerfile.android-sdk"
             ;;
         cpp-only)
             dockerfile="docker/linux/composite/Dockerfile.cpp-only"
@@ -280,6 +284,9 @@ build_buildx() {
         flet)
             dockerfile="docker/linux/language-packs/flet/Dockerfile.flet"
             ;;
+        android-sdk)
+            dockerfile="docker/linux/language-packs/android-sdk/Dockerfile.android-sdk"
+            ;;
         cpp-only)
             dockerfile="docker/linux/composite/Dockerfile.cpp-only"
             ;;
@@ -380,7 +387,7 @@ build_all_buildx() {
     log_info "Building all images with buildx..."
 
     # Define build order (respecting dependencies)
-    local images=("base" "cpp" "python" "nodejs" "go" "flutter" "flet" "cpp-only" "python-only" "web" "flutter-only" "flet-only" "full-stack")
+    local images=("base" "cpp" "python" "nodejs" "go" "android-sdk" "flutter" "flet" "cpp-only" "python-only" "web" "flutter-only" "flet-only" "full-stack")
 
     for image in "${images[@]}"; do
         if ! build_buildx "${image}"; then
@@ -545,7 +552,7 @@ main() {
     fi
 
     # Check for all single image type
-    local all_image_types=("base" "cpp" "python" "nodejs" "go" "flutter" "flet" "cpp-only" "python-only" "web" "flutter-only" "flet-only" "full-stack" "builder" "all")
+    local all_image_types=("base" "cpp" "python" "nodejs" "go" "flutter" "flet" "android-sdk" "cpp-only" "python-only" "web" "flutter-only" "flet-only" "full-stack" "builder" "all")
     for image_type in "${image_types[@]}"; do
         if [[ ! " ${all_image_types[*]} " =~ " ${image_type} " ]]; then
             log_error "Invalid image type: ${image_type}"

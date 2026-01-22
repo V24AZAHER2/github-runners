@@ -42,14 +42,16 @@ COPY --from=gh-runner:go-pack /go /go
 
 # Copy Flutter/Dart toolchain
 COPY --from=gh-runner:flutter-pack /opt/flutter /opt/flutter
-COPY --from=gh-runner:flutter-pack /opt/android-sdk /opt/android-sdk
+# Copy Android SDK from android-sdk-pack (more efficient than copying from flutter-pack)
+COPY --from=gh-runner:android-sdk-pack /opt/android-sdk /opt/android-sdk
 COPY --from=gh-runner:flutter-pack /usr/lib/x86_64-linux-gnu/ /usr/lib/x86_64-linux-gnu/
 
 # Copy Flet packages (including repath dependency of flet-core)
 COPY --from=gh-runner:flet-pack /usr/local/lib/python3.10/dist-packages/flet /usr/local/lib/python3.10/dist-packages/flet
 COPY --from=gh-runner:flet-pack /usr/local/lib/python3.10/dist-packages/flet_core /usr/local/lib/python3.10/dist-packages/flet_core
 COPY --from=gh-runner:flet-pack /usr/local/lib/python3.10/dist-packages/flet_runtime /usr/local/lib/python3.10/dist-packages/flet_runtime
-COPY --from=gh-runner:flet-pack /usr/local/lib/python3.10/dist-packages/repath /usr/local/lib/python3.10/dist-packages/repath
+# Install repath dependency (flet_core requires it)
+RUN pip install --no-cache-dir repath
 
 # Create symlinks
 RUN ln -sf /usr/bin/python3 /usr/bin/python && \
@@ -89,8 +91,7 @@ USER runner
 RUN git config --global --add safe.directory /opt/flutter && \
     flutter --version && \
     dart --version && \
-    python3 -c "import flet; print(f'Flet installed successfully')" && \
-    pip3 show flet | grep Version
+    python3 -c "import flet; print(f'Flet installed successfully')"
 USER root
 
 # Environment variables for all stacks

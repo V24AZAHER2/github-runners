@@ -1,0 +1,64 @@
+# docker/linux/language-packs/android-sdk/Dockerfile.android-sdk
+# Android SDK language pack for GitHub Actions runners
+# Size: ~2GB (downloads Android SDK once)
+
+FROM gh-runner:linux-base AS android-sdk-pack
+
+# Switch to root for package installation
+USER root
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install Java (required for Android SDK) and download tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openjdk-17-jdk \
+    openjdk-17-jre \
+    wget \
+    unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && java -version
+
+# Install Android SDK and tools
+ARG ANDROID_SDK_VERSION=34
+ARG ANDROID_BUILD_TOOLS_VERSION=34.0.0
+
+RUN mkdir -p /opt/android-sdk/cmdline-tools && \
+    cd /opt/android-sdk/cmdline-tools && \
+    wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O cmdline-tools.zip && \
+    unzip -q cmdline-tools.zip && \
+    mv cmdline-tools latest && \
+    rm cmdline-tools.zip
+
+# Set up Android SDK environment
+ENV ANDROID_SDK_ROOT=/opt/android-sdk
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV PATH=$PATH:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools
+
+# Install Android SDK components
+RUN yes | sdkmanager --licenses && \
+    sdkmanager "platforms;android-${ANDROID_SDK_VERSION}" && \
+    sdkmanager "build-tools;${ANDROID_BUILD_TOOLS_VERSION}" && \
+    sdkmanager "platform-tools"
+
+# Accept Android licenses (required for Flutter/Flet)
+ENV ANDROID_LICENSE_AGREEMENT=yes
+
+# Set permissions
+RUN chown -R runner:runner /opt/android-sdk
+
+# Verify installation
+USER runner
+RUN sdkmanager --list | grep "platforms;android-${ANDROID_SDK_VERSION}" && \
+    sdkmanager --list | grep "build-tools;${ANDROID_BUILD_TOOLS_VERSION}" && \
+    sdkmanager --list | grep "platform-tools"
+USER root
+
+# Labels
+LABEL org.opencontainers.image.description="Android SDK language pack for GitHub Actions runners" \
+      org.opencontainers.image.version="1.0.0" \
+      org.opencontainers.image.android-sdk.version="34" \
+      org.opencontainers.image.size="~2GB"
+
+USER runner
+WORKDIR /actions-runner

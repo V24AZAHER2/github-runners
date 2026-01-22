@@ -103,6 +103,12 @@ else
     test_fail "Go language pack missing"
 fi
 
+if [ -f "docker/linux/language-packs/android-sdk/Dockerfile.android-sdk" ]; then
+    test_pass "Android SDK language pack exists"
+else
+    test_fail "Android SDK language pack missing"
+fi
+
 if [ -f "docker/linux/composite/Dockerfile.cpp-only" ]; then
     test_pass "C++ composite image exists"
 else
