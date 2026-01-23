@@ -25,8 +25,9 @@ Base Image (300MB)
     │   ├── Python Pack (150MB) - Python 3, pip, venv
     │   ├── Node.js Pack (180MB) - Node.js 20, npm, yarn
     │   ├── Go Pack (100MB) - Go 1.22 toolchain
-    │   ├── Flutter Pack (2.0GB) - Flutter 3.19, Dart, Android SDK
-    │   └── [More languages planned]
+    │   ├── Android SDK Pack (800MB) - Android SDK, JDK (shared)
+    │   ├── Flutter Pack (1.2GB) - Flutter 3.19, Dart
+    │   └── Flet Pack (1.5GB) - Flet 0.22.0, Python packages
     └── Composite Images (Base + Selected Packs)
         ├── cpp-only (550MB)
         ├── python-only (450MB)
@@ -44,6 +45,13 @@ github-runner/
 │   ├── linux/
 │   │   ├── base/              # Minimal base image (300MB)
 │   │   ├── language-packs/    # Language-specific layers
+│   │   │   ├── cpp/           # C++ compiler tools
+│   │   │   ├── python/        # Python tools
+│   │   │   ├── nodejs/        # Node.js tools
+│   │   │   ├── go/            # Go toolchain
+│   │   │   ├── android-sdk/   # Android SDK (shared)
+│   │   │   ├── flutter/       # Flutter + Dart
+│   │   │   └── flet/          # Flet framework
 │   │   ├── composite/         # Pre-built combinations
 │   │   └── entrypoint/        # Shared entrypoint script
 │   ├── macos/                 # [Future] macOS runners
@@ -57,6 +65,14 @@ github-runner/
 │   ├── linux-flet.yml         # Flet (Python to Flutter) development
 │   ├── linux-full.yml
 │   └── build-all.yml
+├── .github/workflows/         # GitHub Actions workflow examples
+│   ├── cpp-only.yml           # C/C++ workflow
+│   ├── python-only.yml        # Python workflow
+│   ├── web-stack.yml          # Node.js + Go workflow
+│   ├── flutter-only.yml       # Flutter workflow
+│   ├── flet-only.yml          # Flet workflow
+│   ├── full-stack.yml         # Full stack workflow
+│   └── README.md              # Workflow documentation
 ├── docs/
 │   └── linux-modular/         # Comprehensive documentation
 └── README.md                  # This file
@@ -156,6 +172,7 @@ docker build -f docker/linux/language-packs/python/Dockerfile.python -t gh-runne
 docker build -f docker/linux/language-packs/cpp/Dockerfile.cpp -t gh-runner:cpp-pack .
 docker build -f docker/linux/language-packs/nodejs/Dockerfile.nodejs -t gh-runner:nodejs-pack .
 docker build -f docker/linux/language-packs/go/Dockerfile.go -t gh-runner:go-pack .
+docker build -f docker/linux/language-packs/android-sdk/Dockerfile.android-sdk -t gh-runner:android-sdk-pack .
 docker build -f docker/linux/language-packs/flutter/Dockerfile.flutter -t gh-runner:flutter-pack .
 docker build -f docker/linux/language-packs/flet/Dockerfile.flet -t gh-runner:flet-pack .
 
@@ -333,6 +350,19 @@ jobs:
 | **Flutter Only** | `gh-runner:flutter-only` | 2.3GB | Flutter/Dart mobile development (Android/iOS) |
 | **Flet Only** | `gh-runner:flet-only` | 3.8GB | Flet (Python→Flutter) mobile/web development |
 | **Full Stack** | `gh-runner:full-stack` | 2.5GB | All languages (legacy support) |
+
+### Language Packs
+
+| Language Pack | Image | Size | Description |
+|---------------|-------|------|-------------|
+| **Base** | `gh-runner:linux-base` | 300MB | Minimal Ubuntu + GitHub Runner |
+| **C++** | `gh-runner:cpp-pack` | 250MB | GCC, Clang, CMake, Make, GDB |
+| **Python** | `gh-runner:python-pack` | 150MB | Python 3, pip, venv, setuptools |
+| **Node.js** | `gh-runner:nodejs-pack` | 180MB | Node.js 20, npm, yarn, pnpm |
+| **Go** | `gh-runner:go-pack` | 100MB | Go 1.22 toolchain |
+| **Android SDK** | `gh-runner:android-sdk-pack` | 800MB | Android SDK, OpenJDK 17 (shared) |
+| **Flutter** | `gh-runner:flutter-pack` | 1.2GB | Flutter 3.19, Dart 3.3 |
+| **Flet** | `gh-runner:flet-pack` | 1.5GB | Flet 0.22.0, Python packages |
 
 ## 🔧 Environment Variables
 
@@ -866,11 +896,12 @@ docker buildx build \
 ### Core Components
 - ✅ Base image with Ubuntu 22.04
 - ✅ GitHub Actions runner (v2.331.0)
-- ✅ Language packs (6 languages: C++, Python, Node.js, Go, Flutter, Flet)
+- ✅ Language packs (7 languages: C++, Python, Node.js, Go, Android SDK, Flutter, Flet)
 - ✅ Composite images (6 combinations: cpp-only, python-only, web-stack, flutter-only, flet-only, full-stack)
 - ✅ Docker Compose configurations
 - ✅ Comprehensive documentation
 - ✅ Docker image builder system (build, tag, push to registry)
+- ✅ Example GitHub Actions workflows (6 workflows in `.github/workflows/`)
 
 ### Docker Image Builder
 The `docker/builder/` directory contains a complete system for building, tagging, and pushing Docker images to any container registry (GitHub Container Registry, Docker Hub, private registries, etc.).
@@ -904,6 +935,34 @@ make all REGISTRY=ghcr.io ORG=cicd PUSH=true
 
 **Documentation:** See `docker/builder/README.md` for complete details.
 
+### GitHub Actions Workflows
+
+This project includes example workflow files in `.github/workflows/` for using with self-hosted runners:
+
+| Workflow File | Runner | Use Case |
+|---------------|--------|----------|
+| **cpp-only.yml** | `gh-runner:cpp-only` | C/C++ development, systems programming |
+| **python-only.yml** | `gh-runner:python-only` | Python/ML/AI, data science |
+| **web-stack.yml** | `gh-runner:web-stack` | Node.js + Go web development |
+| **flutter-only.yml** | `gh-runner:flutter-only` | Flutter mobile development (Android/iOS/Web) |
+| **flet-only.yml** | `gh-runner:flet-only` | Flet (Python→Flutter) mobile/web development |
+| **full-stack.yml** | `gh-runner:full-stack` | Multi-language projects |
+
+**Quick Start:**
+```bash
+# Copy a workflow to your repository
+cp .github/workflows/cpp-only.yml .github/workflows/
+
+# Update runner labels in the workflow
+# Change: runs-on: [self-hosted, linux, cpp]
+# To match your runner labels
+
+# Trigger workflow via GitHub UI:
+# Actions → Select workflow → Run workflow
+```
+
+**See [.github/workflows/README.md](.github/workflows/README.md) for complete documentation.**
+
 ### Docker Images
 | Image | Size | Use Case |
 |-------|------|----------|
@@ -912,8 +971,9 @@ make all REGISTRY=ghcr.io ORG=cicd PUSH=true
 | **gh-runner:python-pack** | 150MB | Language pack (Python tools) |
 | **gh-runner:nodejs-pack** | 180MB | Language pack (Node.js tools) |
 | **gh-runner:go-pack** | 100MB | Language pack (Go tools) |
-| **gh-runner:flutter-pack** | 2.0GB | Language pack (Flutter/Dart tools) |
-| **gh-runner:flet-pack** | 3.5GB | Language pack (Flet/Python tools) |
+| **gh-runner:android-sdk-pack** | 800MB | Language pack (Android SDK + JDK) |
+| **gh-runner:flutter-pack** | 1.2GB | Language pack (Flutter/Dart tools) |
+| **gh-runner:flet-pack** | 1.5GB | Language pack (Flet/Python tools) |
 | **gh-runner:cpp-only** | 550MB | C++ development |
 | **gh-runner:python-only** | 450MB | Python/ML development |
 | **gh-runner:web-stack** | 580MB | Node.js + Go web dev |
@@ -926,7 +986,8 @@ make all REGISTRY=ghcr.io ORG=cicd PUSH=true
 - ✅ **Python**: Python 3.x, pip, venv, setuptools, wheel
 - ✅ **Node.js**: Node.js 20, npm, yarn, pnpm
 - ✅ **Go**: Go 1.22 toolchain
-- ✅ **Flutter**: Flutter 3.19, Dart 3.3, Android SDK
+- ✅ **Android SDK**: Android SDK 34, OpenJDK 17 (shared across Flutter/Flet)
+- ✅ **Flutter**: Flutter 3.19, Dart 3.3
 - ✅ **Flet**: Flet 0.22.0 (Python→Flutter framework)
 - ⏳ Java (planned)
 - ⏳ Rust (planned)
