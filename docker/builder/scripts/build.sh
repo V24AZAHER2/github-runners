@@ -62,12 +62,14 @@ Image Types:
   python            Build Python language pack
   nodejs            Build Node.js language pack
   go                Build Go language pack
+  ruby              Build Ruby language pack (with rbenv)
   flutter           Build Flutter language pack
   flet              Build Flet language pack
   android-sdk       Build Android SDK language pack
   cpp-only          Build C++ composite runner
   python-only       Build Python composite runner
   web               Build Web composite runner
+  ruby-only         Build Ruby composite runner
   flutter-only      Build Flutter composite runner
   flet-only         Build Flet composite runner
   full-stack        Build full stack runner
@@ -167,6 +169,9 @@ build_standard() {
         go)
             dockerfile="docker/linux/language-packs/go/Dockerfile.go"
             ;;
+        ruby)
+            dockerfile="docker/linux/language-packs/ruby/Dockerfile.ruby"
+            ;;
         flutter)
             dockerfile="docker/linux/language-packs/flutter/Dockerfile.flutter"
             ;;
@@ -184,6 +189,9 @@ build_standard() {
             ;;
         web)
             dockerfile="docker/linux/composite/Dockerfile.web"
+            ;;
+        ruby-only)
+            dockerfile="docker/linux/composite/Dockerfile.ruby-only"
             ;;
         flutter-only)
             dockerfile="docker/linux/composite/Dockerfile.flutter-only"
@@ -278,6 +286,9 @@ build_buildx() {
         go)
             dockerfile="docker/linux/language-packs/go/Dockerfile.go"
             ;;
+        ruby)
+            dockerfile="docker/linux/language-packs/ruby/Dockerfile.ruby"
+            ;;
         flutter)
             dockerfile="docker/linux/language-packs/flutter/Dockerfile.flutter"
             ;;
@@ -295,6 +306,9 @@ build_buildx() {
             ;;
         web)
             dockerfile="docker/linux/composite/Dockerfile.web"
+            ;;
+        ruby-only)
+            dockerfile="docker/linux/composite/Dockerfile.ruby-only"
             ;;
         flutter-only)
             dockerfile="docker/linux/composite/Dockerfile.flutter-only"
@@ -387,7 +401,7 @@ build_all_buildx() {
     log_info "Building all images with buildx..."
 
     # Define build order (respecting dependencies)
-    local images=("base" "cpp" "python" "nodejs" "go" "android-sdk" "flutter" "flet" "cpp-only" "python-only" "web" "flutter-only" "flet-only" "full-stack")
+    local images=("base" "cpp" "python" "nodejs" "go" "ruby" "android-sdk" "flutter" "flet" "cpp-only" "python-only" "web" "ruby-only" "flutter-only" "flet-only" "full-stack")
 
     for image in "${images[@]}"; do
         if ! build_buildx "${image}"; then
@@ -552,7 +566,7 @@ main() {
     fi
 
     # Check for all single image type
-    local all_image_types=("base" "cpp" "python" "nodejs" "go" "flutter" "flet" "android-sdk" "cpp-only" "python-only" "web" "flutter-only" "flet-only" "full-stack" "builder" "all")
+    local all_image_types=("base" "cpp" "python" "nodejs" "go" "ruby" "flutter" "flet" "android-sdk" "cpp-only" "python-only" "web" "ruby-only" "flutter-only" "flet-only" "full-stack" "builder" "all")
     for image_type in "${image_types[@]}"; do
         if [[ ! " ${all_image_types[*]} " =~ " ${image_type} " ]]; then
             log_error "Invalid image type: ${image_type}"

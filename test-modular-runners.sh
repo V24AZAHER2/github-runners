@@ -103,6 +103,12 @@ else
     test_fail "Go language pack missing"
 fi
 
+if [ -f "docker/linux/language-packs/ruby/Dockerfile.ruby" ]; then
+    test_pass "Ruby language pack exists"
+else
+    test_fail "Ruby language pack missing"
+fi
+
 if [ -f "docker/linux/language-packs/android-sdk/Dockerfile.android-sdk" ]; then
     test_pass "Android SDK language pack exists"
 else
@@ -125,6 +131,12 @@ if [ -f "docker/linux/composite/Dockerfile.web" ]; then
     test_pass "Web composite image exists"
 else
     test_fail "Web composite image missing"
+fi
+
+if [ -f "docker/linux/composite/Dockerfile.ruby-only" ]; then
+    test_pass "Ruby composite image exists"
+else
+    test_fail "Ruby composite image missing"
 fi
 
 if [ -f "docker/linux/composite/Dockerfile.full-stack" ]; then

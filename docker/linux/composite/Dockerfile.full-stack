@@ -1,6 +1,6 @@
 # docker/linux/composite/Dockerfile.full-stack
 # Full stack runner - ALL languages (legacy/monolith support)
-# Size: ~2.5GB (Base 300MB + All language packs ~2.2GB)
+# Size: ~2.65GB (Base 300MB + All language packs ~2.35GB)
 
 FROM gh-runner:linux-base
 
@@ -40,6 +40,15 @@ COPY --from=gh-runner:nodejs-pack /usr/lib/node_modules/ /usr/lib/node_modules/
 COPY --from=gh-runner:go-pack /usr/local/go /usr/local/go
 COPY --from=gh-runner:go-pack /go /go
 
+# Copy Ruby toolchain (rbenv)
+COPY --from=gh-runner:ruby-pack /root/.rbenv /root/.rbenv
+COPY --from=gh-runner:ruby-pack /root/.rbenv/shims/ruby /usr/bin/ruby
+COPY --from=gh-runner:ruby-pack /root/.rbenv/shims/gem /usr/bin/gem
+COPY --from=gh-runner:ruby-pack /root/.rbenv/shims/bundle /usr/bin/bundle
+COPY --from=gh-runner:ruby-pack /root/.rbenv/shims/rake /usr/bin/rake
+COPY --from=gh-runner:ruby-pack /root/.rbenv/shims/bundler /usr/bin/bundler
+COPY --from=gh-runner:ruby-pack /usr/local/bundle /usr/local/bundle
+
 # Copy Flutter/Dart toolchain
 COPY --from=gh-runner:flutter-pack /opt/flutter /opt/flutter
 # Copy Android SDK from android-sdk-pack (more efficient than copying from flutter-pack)
@@ -53,12 +62,14 @@ COPY --from=gh-runner:flet-pack /usr/local/lib/python3.10/dist-packages/flet_run
 # Install repath dependency (flet_core requires it)
 RUN pip install --no-cache-dir repath
 
-# Create symlinks
+# Create symlinks and configure rbenv
 RUN ln -sf /usr/bin/python3 /usr/bin/python && \
     ln -sf /usr/local/go/bin/go /usr/bin/go && \
     ln -sf /usr/local/go/bin/gofmt /usr/bin/gofmt && \
     ln -sf /opt/flutter/bin/flutter /usr/bin/flutter && \
-    ln -sf /opt/flutter/bin/dart /usr/bin/dart
+    ln -sf /opt/flutter/bin/dart /usr/bin/dart && \
+    echo 'eval "$(rbenv init - bash)"' >> /etc/bash.bashrc && \
+    echo 'export PATH="/root/.rbenv/bin:/root/.rbenv/shims:$PATH"' >> /etc/bash.bashrc
 
 # Install additional common tools (for full compatibility)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -83,12 +94,17 @@ RUN git config --global --add safe.directory /opt/flutter && \
     node --version && \
     npm --version && \
     yarn --version && \
-    go version
+    go version && \
+    ruby --version && \
+    gem --version
 
-# Verify Flutter/Dart installations as runner user (to avoid root warning)
+# Verify Flutter/Dart and Ruby installations as runner user (to avoid root warning)
 USER runner
 # Configure git safe directory for runner user (to avoid ownership errors)
 RUN git config --global --add safe.directory /opt/flutter && \
+    echo 'eval "$(rbenv init - bash)"' >> /home/runner/.bashrc && \
+    echo 'export PATH="/root/.rbenv/bin:/root/.rbenv/shims:$PATH"' >> /home/runner/.bashrc && \
+    echo 'export RBENV_ROOT="/root/.rbenv"' >> /home/runner/.bashrc && \
     flutter --version && \
     dart --version && \
     python3 -c "import flet; print(f'Flet installed successfully')"
@@ -102,6 +118,9 @@ ENV BUILD_STACK=full \
     GOROOT=/usr/local/go \
     GOPATH=/go \
     GO111MODULE=on \
+    RUBY_VERSION=3.3.6 \
+    RUBYOPT="-Ku -E utf-8" \
+    BUNDLE_PATH=/usr/local/bundle \
     CC=/usr/bin/gcc \
     CXX=/usr/bin/g++ \
     CMAKE_C_COMPILER=gcc \
@@ -110,13 +129,14 @@ ENV BUILD_STACK=full \
     ANDROID_SDK_ROOT=/opt/android-sdk \
     ANDROID_LICENSE_AGREEMENT=yes \
     PUB_CACHE=/opt/flutter/.pub-cache \
-    PATH="/usr/local/go/bin:/opt/flutter/bin:/opt/flutter/bin/cache/dart-sdk/bin:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:/home/runner/.local/bin:${PATH}"
+    RBENV_ROOT=/root/.rbenv \
+    PATH="/root/.rbenv/bin:/root/.rbenv/shims:/usr/local/go/bin:/opt/flutter/bin:/opt/flutter/bin/cache/dart-sdk/bin:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:/home/runner/.local/bin:${PATH}"
 
 # Labels
-LABEL org.opencontainers.image.description="Full stack GitHub Actions runner (Python + C++ + Node.js + Go + Flutter + Flet)" \
+LABEL org.opencontainers.image.description="Full stack GitHub Actions runner (Python + C++ + Node.js + Go + Ruby + Flutter + Flet)" \
       org.opencontainers.image.version="1.0.0" \
-      org.opencontainers.image.tags="full,full-stack,monolith,legacy,python,cpp,nodejs,go,flutter,dart,flet" \
-      org.opencontainers.image.size="~2.5GB"
+      org.opencontainers.image.tags="full,full-stack,monolith,legacy,python,cpp,nodejs,go,ruby,rails,flutter,dart,flet" \
+      org.opencontainers.image.size="~2.65GB"
 
 USER runner
 WORKDIR /actions-runner

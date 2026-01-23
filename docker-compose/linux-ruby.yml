@@ -1,0 +1,135 @@
+# docker-compose/linux-ruby.yml
+# Ruby development GitHub Actions runner configuration
+# Designed for Ruby/Rails/Sinatra development
+
+version: '3.8'
+
+networks:
+  github-runners:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+services:
+  ruby-runner:
+    # Build the Ruby only composite image
+    build:
+      context: ../
+      dockerfile: docker/linux/composite/Dockerfile.ruby-only
+      target: gh-runner:ruby-only
+      # Optional: Build arguments
+      args:
+        RUNNER_VERSION: 2.331.0
+    image: gh-runner:ruby-only
+    container_name: github-ruby-runner
+    hostname: ruby-runner
+
+    # Resource limits for Ruby/Rails workloads
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
+
+    # Memory and CPU limits
+    mem_limit: 4g
+    mem_reservation: 2g
+    cpus: '2.0'
+    cpu_shares: 1024
+
+    # Environment variables (REQUIRED)
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN:?GITHUB_TOKEN environment variable is required}
+      # Choose ONE: GITHUB_OWNER for org runners, GITHUB_REPOSITORY for repo runners
+      - GITHUB_OWNER=${GITHUB_OWNER}
+      - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
+      - RUNNER_NAME=${RUNNER_NAME:-ruby-runner-01}
+      - RUNNER_LABELS=${RUNNER_LABELS:-linux,ruby,rails,sinatra,build}
+      - RUNNER_GROUP=${RUNNER_GROUP:-Default}
+      - RUNNER_WORKDIR=${RUNNER_WORKDIR:-_work}
+      - RUNNER_AS_ROOT=${RUNNER_AS_ROOT:-false}
+      - RUNNER_REPLACE_EXISTING=${RUNNER_REPLACE_EXISTING:-false}
+
+    # Optional environment variables for Ruby specific configuration
+      - RUBY_VERSION=${RUBY_VERSION:-3.3.6}
+      - BUNDLE_PATH=${BUNDLE_PATH:-/usr/local/bundle}
+      - RUBYOPT=${RUBYOPT:--Ku -E utf-8}
+
+    # Volumes
+    volumes:
+      # Docker socket for container builds (read-only for security)
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+      # Persistent runner data
+      - ./data/ruby-runner:/actions-runner
+
+      # Ruby bundle cache (important for fast builds)
+      - ./data/ruby-bundle-cache:/usr/local/bundle
+
+      # rbenv cache
+      - ./data/ruby-rbenv-cache:/home/runner/.rbenv
+
+      # Optional: Source code mounting for local development
+      # - /path/to/your/project:/workspace:ro
+
+    # Network configuration
+    networks:
+      - github-runners
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service"
+        env: "os,customer"
+
+    # Health check
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080 || pgrep run.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # Labels for monitoring
+    labels:
+      - "service=github-runner"
+      - "language=ruby"
+      - "framework=rails"
+      - "role=build"
+      - "environment=production"
+
+    # User configuration
+    user: "1001:1001"
+
+    # Read only root filesystem (optional, for security)
+    # read_only: true
+
+    # Depends on (optional - add service names here if needed)
+    # depends_on:
+    #   - other-service
+
+# Profile for selective deployment
+# profiles:
+#   - ruby
+#   - rails
+#   - github

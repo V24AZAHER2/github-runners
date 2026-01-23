@@ -25,6 +25,7 @@ Base Image (300MB)
     │   ├── Python Pack (150MB) - Python 3, pip, venv
     │   ├── Node.js Pack (180MB) - Node.js 20, npm, yarn
     │   ├── Go Pack (100MB) - Go 1.22 toolchain
+    │   ├── Ruby Pack (150MB) - Ruby 3.3 + rbenv
     │   ├── Android SDK Pack (800MB) - Android SDK, JDK (shared)
     │   ├── Flutter Pack (1.2GB) - Flutter 3.19, Dart
     │   └── Flet Pack (1.5GB) - Flet 0.22.0, Python packages
@@ -32,9 +33,10 @@ Base Image (300MB)
         ├── cpp-only (550MB)
         ├── python-only (450MB)
         ├── web-stack (580MB)
+        ├── ruby-only (450MB)
         ├── flutter-only (2.3GB)
         ├── flet-only (3.8GB)
-        └── full-stack (2.5GB)
+        └── full-stack (2.65GB)
 ```
 
 ## 📁 Repository Structure
@@ -49,6 +51,7 @@ github-runner/
 │   │   │   ├── python/        # Python tools
 │   │   │   ├── nodejs/        # Node.js tools
 │   │   │   ├── go/            # Go toolchain
+│   │   │   ├── ruby/          # Ruby toolchain (rbenv)
 │   │   │   ├── android-sdk/   # Android SDK (shared)
 │   │   │   ├── flutter/       # Flutter + Dart
 │   │   │   └── flet/          # Flet framework
@@ -69,6 +72,7 @@ github-runner/
 │   ├── cpp-only.yml           # C/C++ workflow
 │   ├── python-only.yml        # Python workflow
 │   ├── web-stack.yml          # Node.js + Go workflow
+│   ├── ruby-only.yml          # Ruby workflow
 │   ├── flutter-only.yml       # Flutter workflow
 │   ├── flet-only.yml          # Flet workflow
 │   ├── full-stack.yml         # Full stack workflow
@@ -160,7 +164,10 @@ docker build -f docker/linux/language-packs/nodejs/Dockerfile.nodejs -t gh-runne
 # 3. Build Go language pack
 docker build -f docker/linux/language-packs/go/Dockerfile.go -t gh-runner:go-pack .
 
-# 4. Build web stack composite image
+# 4. Build Ruby language pack (optional, for Rails/Sinatra)
+docker build -f docker/linux/language-packs/ruby/Dockerfile.ruby -t gh-runner:ruby-pack .
+
+# 5. Build web stack composite image
 docker build -f docker/linux/composite/Dockerfile.web -t gh-runner:web-stack .
 ```
 
@@ -172,6 +179,7 @@ docker build -f docker/linux/language-packs/python/Dockerfile.python -t gh-runne
 docker build -f docker/linux/language-packs/cpp/Dockerfile.cpp -t gh-runner:cpp-pack .
 docker build -f docker/linux/language-packs/nodejs/Dockerfile.nodejs -t gh-runner:nodejs-pack .
 docker build -f docker/linux/language-packs/go/Dockerfile.go -t gh-runner:go-pack .
+docker build -f docker/linux/language-packs/ruby/Dockerfile.ruby -t gh-runner:ruby-pack .
 docker build -f docker/linux/language-packs/android-sdk/Dockerfile.android-sdk -t gh-runner:android-sdk-pack .
 docker build -f docker/linux/language-packs/flutter/Dockerfile.flutter -t gh-runner:flutter-pack .
 docker build -f docker/linux/language-packs/flet/Dockerfile.flet -t gh-runner:flet-pack .
@@ -275,6 +283,24 @@ jobs:
         run: go build -o app main.go
 ```
 
+### Ruby Development
+```yaml
+name: Ruby Tests
+on: [push]
+
+jobs:
+  test:
+    runs-on: [self-hosted, linux, ruby]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: bundle install
+      - name: Run tests
+        run: bundle exec rspec
+      - name: Run RuboCop
+        run: bundle exec rubocop
+```
+
 ### Flutter Development
 ```yaml
 name: Flutter Build
@@ -347,9 +373,10 @@ jobs:
 | **C++ Only** | `gh-runner:cpp-only` | 550MB | C/C++ development, systems programming |
 | **Python Only** | `gh-runner:python-only` | 450MB | Python/ML/AI, data science |
 | **Web Stack** | `gh-runner:web-stack` | 580MB | Node.js + Go web development |
+| **Ruby Only** | `gh-runner:ruby-only` | 450MB | Ruby/Rails/Sinatra development |
 | **Flutter Only** | `gh-runner:flutter-only` | 2.3GB | Flutter/Dart mobile development (Android/iOS) |
 | **Flet Only** | `gh-runner:flet-only` | 3.8GB | Flet (Python→Flutter) mobile/web development |
-| **Full Stack** | `gh-runner:full-stack` | 2.5GB | All languages (legacy support) |
+| **Full Stack** | `gh-runner:full-stack` | 2.65GB | All languages (legacy support) |
 
 ### Language Packs
 
@@ -360,6 +387,7 @@ jobs:
 | **Python** | `gh-runner:python-pack` | 150MB | Python 3, pip, venv, setuptools |
 | **Node.js** | `gh-runner:nodejs-pack` | 180MB | Node.js 20, npm, yarn, pnpm |
 | **Go** | `gh-runner:go-pack` | 100MB | Go 1.22 toolchain |
+| **Ruby** | `gh-runner:ruby-pack` | 150MB | Ruby 3.3 + rbenv + Bundler |
 | **Android SDK** | `gh-runner:android-sdk-pack` | 800MB | Android SDK, OpenJDK 17 (shared) |
 | **Flutter** | `gh-runner:flutter-pack` | 1.2GB | Flutter 3.19, Dart 3.3 |
 | **Flet** | `gh-runner:flet-pack` | 1.5GB | Flet 0.22.0, Python packages |
@@ -896,8 +924,8 @@ docker buildx build \
 ### Core Components
 - ✅ Base image with Ubuntu 22.04
 - ✅ GitHub Actions runner (v2.331.0)
-- ✅ Language packs (7 languages: C++, Python, Node.js, Go, Android SDK, Flutter, Flet)
-- ✅ Composite images (6 combinations: cpp-only, python-only, web-stack, flutter-only, flet-only, full-stack)
+- ✅ Language packs (8 languages: C++, Python, Node.js, Go, Ruby, Android SDK, Flutter, Flet)
+- ✅ Composite images (7 combinations: cpp-only, python-only, web-stack, ruby-only, flutter-only, flet-only, full-stack)
 - ✅ Docker Compose configurations
 - ✅ Comprehensive documentation
 - ✅ Docker image builder system (build, tag, push to registry)
@@ -971,21 +999,24 @@ cp .github/workflows/cpp-only.yml .github/workflows/
 | **gh-runner:python-pack** | 150MB | Language pack (Python tools) |
 | **gh-runner:nodejs-pack** | 180MB | Language pack (Node.js tools) |
 | **gh-runner:go-pack** | 100MB | Language pack (Go tools) |
+| **gh-runner:ruby-pack** | 150MB | Language pack (Ruby tools) |
 | **gh-runner:android-sdk-pack** | 800MB | Language pack (Android SDK + JDK) |
 | **gh-runner:flutter-pack** | 1.2GB | Language pack (Flutter/Dart tools) |
 | **gh-runner:flet-pack** | 1.5GB | Language pack (Flet/Python tools) |
 | **gh-runner:cpp-only** | 550MB | C++ development |
 | **gh-runner:python-only** | 450MB | Python/ML development |
 | **gh-runner:web-stack** | 580MB | Node.js + Go web dev |
+| **gh-runner:ruby-only** | 450MB | Ruby/Rails development |
 | **gh-runner:flutter-only** | 2.3GB | Flutter mobile dev |
 | **gh-runner:flet-only** | 3.8GB | Flet (Python→Flutter) dev |
-| **gh-runner:full-stack** | 2.5GB | All languages (legacy) |
+| **gh-runner:full-stack** | 2.65GB | All languages (legacy) |
 
 ### Language Support
 - ✅ **C++**: GCC, Clang, CMake, Make, GDB, Valgrind
 - ✅ **Python**: Python 3.x, pip, venv, setuptools, wheel
 - ✅ **Node.js**: Node.js 20, npm, yarn, pnpm
 - ✅ **Go**: Go 1.22 toolchain
+- ✅ **Ruby**: Ruby 3.3 + rbenv + Bundler + Rake + Common gems
 - ✅ **Android SDK**: Android SDK 34, OpenJDK 17 (shared across Flutter/Flet)
 - ✅ **Flutter**: Flutter 3.19, Dart 3.3
 - ✅ **Flet**: Flet 0.22.0 (Python→Flutter framework)

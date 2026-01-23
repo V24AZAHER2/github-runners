@@ -1,0 +1,56 @@
+# docker/linux/composite/Dockerfile.ruby-only
+# Ruby only runner - for Ruby/Rails/Sinatra development
+# Size: ~450MB (Base 300MB + Ruby pack 150MB)
+
+FROM gh-runner:linux-base
+
+# Switch to root for symlink creation
+USER root
+
+# Copy Ruby toolchain and rbenv from the Ruby pack
+COPY --from=gh-runner:ruby-pack /root/.rbenv /root/.rbenv
+COPY --from=gh-runner:ruby-pack /root/.rbenv/shims/ruby /usr/bin/ruby
+COPY --from=gh-runner:ruby-pack /root/.rbenv/shims/gem /usr/bin/gem
+COPY --from=gh-runner:ruby-pack /root/.rbenv/shims/bundle /usr/bin/bundle
+COPY --from=gh-runner:ruby-pack /root/.rbenv/shims/rake /usr/bin/rake
+COPY --from=gh-runner:ruby-pack /root/.rbenv/shims/bundler /usr/bin/bundler
+
+# Copy Ruby build dependencies
+COPY --from=gh-runner:ruby-pack /usr/local/lib /usr/local/lib
+COPY --from=gh-runner:ruby-pack /usr/local/include /usr/local/include
+
+# Copy bundle directory
+COPY --from=gh-runner:ruby-pack /usr/local/bundle /usr/local/bundle
+
+# Set rbenv environment for runner user
+ENV PATH="/root/.rbenv/bin:/root/.rbenv/shims:${PATH}"
+ENV RBENV_ROOT="/root/.rbenv"
+ENV RUBYOPT="-Ku -E utf-8"
+ENV BUNDLE_PATH=/usr/local/bundle
+
+# Initialize rbenv and set as global
+RUN echo 'eval "$(rbenv init - bash)"' >> /etc/bash.bashrc && \
+    echo 'eval "$(rbenv init - bash)"' >> /home/runner/.bashrc && \
+    echo 'export PATH="/root/.rbenv/bin:/root/.rbenv/shims:$PATH"' >> /home/runner/.bashrc && \
+    echo 'export RBENV_ROOT="/root/.rbenv"' >> /home/runner/.bashrc
+
+# Verify Ruby installation
+RUN ruby --version && \
+    gem --version && \
+    bundle --version
+
+# Environment variables for Ruby development
+ENV BUILD_STACK=ruby \
+    RUBY_VERSION=3.3.6 \
+    RUBYOPT="-Ku -E utf-8" \
+    BUNDLE_PATH=/usr/local/bundle \
+    PATH="/root/.rbenv/bin:/root/.rbenv/shims:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin:/home/runner/.local/bin:${PATH}"
+
+# Labels
+LABEL org.opencontainers.image.description="Ruby only GitHub Actions runner" \
+      org.opencontainers.image.version="1.0.0" \
+      org.opencontainers.image.tags="ruby,rails,sinatra,ruby3,ruby33" \
+      org.opencontainers.image.size="~450MB"
+
+USER runner
+WORKDIR /actions-runner
