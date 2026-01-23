@@ -45,13 +45,14 @@ RUN echo 'eval "$(rbenv init - bash)"' >> /etc/bash.bashrc
 
 # Install Ruby 3.3 (latest stable) and common gems
 # Combine installation to ensure rbenv is properly initialized
+# Skip documentation generation for faster builds
 RUN echo 'eval "$(rbenv init - bash)"' > /tmp/rbenv-init.sh && \
     bash /tmp/rbenv-init.sh && \
     rbenv install 3.3.6 && \
     rbenv global 3.3.6 && \
     ruby --version && \
-    gem update --system && \
-    gem install bundler rake rspec rubocop rake-yard rails minitest
+    gem update --system --no-document && \
+    gem install bundler rake rspec rubocop rails minitest --no-document
 
 # Set environment variables for Ruby development
 ENV RUBY_VERSION=3.3.6 \
